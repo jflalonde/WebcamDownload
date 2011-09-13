@@ -1,0 +1,20 @@
+<database>
+  <webcam>
+    <status value="DOWNLOAD"/>
+    <file filename="1192128186.xml" folder="."/>
+    <sequence name="1192128186" origName="1192128186"/>
+    <url image="http://live.opatija.net/image.asp" orig="http://images.webcams.travel/webcam/1192128186.jpg" web="http:/
+/live.opatija.net/"/>
+    <gpsCoordinates lat="45.33356400" long="14.30600200"/>
+    <location city="Opatija" continent="EU" country="HR" title="Opatija, Slatina"/>
+  </webcam>
+  <webcam>
+    <status value="DOWNLOAD"/>
+    <file filename="1191252783.xml" folder="."/>
+    <sequence name="1191252783" origName="1191252783"/>
+    <url image="http://www.aganet.gr/cam2.jpg" orig="http://images.webcams.travel/webcam/1191252783.jpg" web="http://www
+.aganet.gr/index.php"/>
+    <gpsCoordinates lat="38.79343000" long="22.72401800"/>
+    <location city="KainoÃºryion" continent="EU" country="GR" title="Kamena Vourla (Kenoyrgio)"/>
+  </webcam>
+</database>

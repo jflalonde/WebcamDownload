@@ -1,0 +1,17 @@
+1. Download images from the original database:
+
+/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_x86_64/bin/python DownloadDaytimeImages.py /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/rawWebcamsDb.xml /nfs/hn01/jlalonde/data/webcamsDownloadDb/images/ /nfs/hn01/jlalonde/data/webcamsDownloadDb/logs/ /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/machineList.xml
+
+
+2. Download images from the filtered database, using 50 nodes on WARP
+
+/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_x86_64/bin/python DownloadImagesWarp.py /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/webcamsToDownload.xml /nfs/hn01/jlalonde/data/webcamsDownloadDb/imagesDb/ 50 /nfs/hn01/jlalonde/data/webcamsDownloadDb/logs/
+
+
+3. Download images from the filtered database, using 10 threads
+
+/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_x86_64/bin/python DownloadImagesThreads.py /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/webcamsToDownload.xml /nfs/baikal/jflalonde/webcamsDownloadDb/imagesDb/ 10 /nfs/hn01/jlalonde/data/webcamsDownloadDb/logs/threadRoot.log
+
+Old version:
+
+/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_x86_64/bin/python DownloadImagesThreads.py /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/webcamsToDownload.xml /nfs/hn01/jlalonde/data/webcamsDownloadDb/imagesDb/ 10 /nfs/hn01/jlalonde/data/webcamsDownloadDb/logs/threadRoot.log
