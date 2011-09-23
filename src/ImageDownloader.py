@@ -37,22 +37,27 @@ class ImageDownloader():
             Downloading is split across these hosts to diminish local bandwidth usage.
     """
     
-    def __init__(self, pythonExecutable='DownloadDaytimeImages.py', \
-                 filterSunAltitude=True, filterExistingFile=True, filterJpg=True, emailNotification=True, \
-                 logger=None, useWarp=False, nbNodes=1, useThreads=False, nbThreads=1):
+    def __init__(self, \
+                 filterSunAltitude=False, minSunAltitude=0, \
+                 filterExistingFile=False, \
+                 filterJpg=False, filterJpgExec='', \
+                 emailNotification=False, emailAddress='', \
+                 emailRunningNotificationInterval=60, \
+                 logger=None, nbThreads=1):
         """ Initializes the class with an optional set of hosts """
         
         self.filterSunAltitude = filterSunAltitude
+        self.minSunAltitude = minSunAltitude
+        
         self.filterExistingFile = filterExistingFile
+        
         self.filterJpg = filterJpg
+        self.filterJpgExec = filterJpgExec
         
-        self.pythonPath = '/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_`uname -p`/bin/python'
-        self.filterJpgExec = '/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/jpeginfo_`uname -p`/bin/jpeginfo -cdq'
-        self.pythonCodePath = '/nfs/hn01/jlalonde/code/python/trunk/mycode/webcamManagement/src'
-        self.pythonExecutable = os.path.join(self.pythonCodePath, pythonExecutable)
-        
-        # Minimum sun altitude (in degrees)
-        self.minSunAltitude = -10
+        # Email notification if host is still downloading
+        self.emailNotification = emailNotification
+        self.email = emailAddress
+        self.emailRunningNotificationInterval = emailRunningNotificationInterval;
         
         # logger
         if logger == None:
@@ -60,48 +65,45 @@ class ImageDownloader():
             self.logger.addHandler(NullHandler())
         else:
             self.logger = logger
-        
-        # Host connection object
-        self.hostConnection = HostConnection.HostConnection('webcamDownload', useWarp=useWarp, \
-                                                            useThreads=useThreads, logger=logger)
-        self.useWarp = useWarp
-        self.nbNodes = nbNodes
-        
-        # For threads
-        self.useThreads = useThreads
+                
+        # Number of threads
         self.nbThreads = nbThreads
         
-        # Email notification if host is still downloading
-        self.emailNotification = emailNotification
-        self.email = 'jlalonde+@cs.cmu.edu'
-        
+        # Host connection object
+        self.hostConnection = HostConnection.HostConnection('webcamDownload', logger=logger)
                     
         
     def sendEmail(self, emailMessage, emailSubject):
-        msg = email.message_from_string(emailMessage)
-        msg['To'] = self.email
-        msg['From'] = self.email
-        msg['Subject'] = '[WebcamDownload]: ' + emailSubject
-                        
-        s = smtplib.SMTP()
-        s.connect()
-        s.sendmail(self.email, [self.email], msg.as_string())
-        s.quit()
+        if self.emailNotification:
+            msg = email.message_from_string(emailMessage)
+            msg['To'] = self.email
+            msg['From'] = self.email
+            msg['Subject'] = '[WebcamDownload]: ' + emailSubject
+                            
+            s = smtplib.SMTP()
+            s.connect()
+            s.sendmail(self.email, [self.email], msg.as_string())
+            s.quit()
         
     def downloadImagesAtRegularIntervals(self, webcamDbFile, outputPath, hostListFile, outputTmpPath='.', logPath='.', \
                                          timeInterval=10*60, totalTime=float('inf')):
         """Downloads a list of images to disk at regular intervals for a given period of time"""
         
         cumulTime = 0
+        maxFactor = 0.0
         while cumulTime < totalTime:
             # Measure starting time
             startTime = time.time()
 
-            # Send notification to tell that we're still alive! (everyday at 7:00am)
-            localTime = time.localtime()
-            if localTime.tm_hour == 7 and localTime.tm_min > 0 and localTime.tm_min <= 10:
+            # Send notification to tell that we're still alive! (once every interval)
+            curFactor = math.floor(float(cumulTime) / float(self.emailRunningNotificationInterval))
+            self.logger.debug('cumulTime = %.2f, i = %.2f, curFactor = %.2f' % (float(cumulTime), \
+                              curFactor, self.emailRunningNotificationInterval) )
+            if (curFactor > maxFactor):
                 self.sendEmail('Have a good webcam-downloading day! See ya tomorrow.\n', 'Webcams are downloading...');
-            
+                self.logger.info('Webcams are still downloading!')
+                maxFactor = curFactor;
+                
             # Is someone still trying to download?
             runningHosts = self.hostConnection.runningProcesses()
             if len(runningHosts):
@@ -119,24 +121,8 @@ class ImageDownloader():
             # Clear previous logs
             self.hostConnection.clearLogs(logPath)
                         
-            if self.useWarp:
-                # Start download process on warp
-                self.downloadImagesWarp(webcamDbFile, outputPath, outputTmpPath, logPath)
-                
-            elif self.useThreads:
-                # Start download processes on localhost
-                self.downloadImagesThreads(webcamDbFile, outputPath, outputTmpPath, logPath)
-                
-            else:
-                # Read the host list from the XML file
-                hostList = []
-                hostParser = xml.dom.minidom.parse(hostListFile)
-                for machineEl in hostParser.getElementsByTagName('machine'):
-                    if int(machineEl.getAttribute('isValid')):
-                        hostList.append(machineEl.getAttribute('name'))
-                
-                # Download images
-                self.downloadImages(webcamDbFile, outputPath, outputTmpPath, logPath, hostList)
+            # Start download processes on localhost
+            self.downloadImagesThreads(webcamDbFile, outputPath, outputTmpPath, logPath)
             
             # Measure end time
             elapsedTime = time.time() - startTime
@@ -149,42 +135,10 @@ class ImageDownloader():
                 self.logger.warning('Time interval already elapsed by %d seconds! Sending notification email' % (elapsedTime-timeInterval))
                 self.sendEmail('Time interval already elapsed by %d seconds!' % (elapsedTime-timeInterval), 'Time interval elapsed')
             
-            cumulTime += elapsedTime
+            cumulTime += timeInterval
             
         self.logger.info('Done downloading images at regular intervals')
-        
-    def downloadImagesWarp(self, webcamsDbFile, outputPath, outputTmpPath='.', logPath='.'):
-        """Downloads a list of images to disk, using the warp cluster"""
-        
-        # Reads the XML file and build a webcam database
-        self.logger.info('Loading database...')
-        webcamDb = Webcam.WebcamDatabase([])
-        webcamDb.loadFromXMLFile(webcamsDbFile)
-        self.logger.info('Done loading %d webcams.' % len(webcamDb))
-        
-        # Split the image list across hosts
-        random.shuffle(webcamDb)
-        nbWebcamsPerHost = int(math.ceil(float(len(webcamDb))/float(self.nbNodes)))
-        
-        self.logger.info('Each of the %d nodes will download %d images' % (self.nbNodes, nbWebcamsPerHost))
-        
-        nbWebcamsDownloaded = 0
-        for i in range(0, self.nbNodes):
-            # Select which webcams to download
-            subWebcamDb = webcamDb[nbWebcamsDownloaded:(nbWebcamsPerHost+nbWebcamsDownloaded)]
-            nbWebcamsDownloaded = nbWebcamsDownloaded + len(subWebcamDb)
-            
-            # Create temporary XML file for that process need absolute path)
-            tmpXMLFile = os.path.join(outputTmpPath, 'tmp_%03d.xml' % i)
-            subWebcamDb.saveToXMLFile(tmpXMLFile)
-            
-            cmd = '%s %s %s %s %s' % (self.pythonPath, self.pythonExecutable, tmpXMLFile, outputPath, logPath)
-            self.hostConnection.startCmdOnWarp(cmd)
-            
-            # Stop if we've processed all webcams
-            if nbWebcamsDownloaded == len(webcamDb):
-                break
-        
+                
     def downloadImagesThreads(self, webcamsDbFile, outputPath, outputTmpPath='.', logPath='.'):
         """Downloads a list of images to disk, using threads on the current host"""
         
@@ -208,23 +162,23 @@ class ImageDownloader():
             nbWebcamsDownloaded = nbWebcamsDownloaded + len(subWebcamDb)
             
             # Create temporary XML file for that process need absolute path)
-            tmpXMLFile = os.path.join(outputTmpPath, 'tmp_%03d.xml' % i)
+            tmpXMLFile = os.path.join(outputTmpPath, 'thread_%03d.xml' % i)
             subWebcamDb.saveToXMLFile(tmpXMLFile)
             
-            tmpLogPath = os.path.join(os.path.dirname(logPath), 'tmp_%03d.log' % i)
+            tmpLogPath = os.path.join(os.path.dirname(logPath), 'thread_%03d.log' % i)
             
             # Start thread with input XML file
             self.hostConnection.startThread(tmpXMLFile, outputPath, tmpLogPath, i, \
-                                             filterSunAltitude = self.filterSunAltitude, \
-                                             filterExistingFile = self.filterExistingFile, \
-                                             filterJpg = self.filterJpg)
+                                            filterSunAltitude = self.filterSunAltitude, \
+                                            filterExistingFile = self.filterExistingFile, \
+                                            filterJpg = self.filterJpg)
             
             # Stop if we've processed all webcams
             if nbWebcamsDownloaded == len(webcamDb):
                 break
       
         
-    def downloadImages(self, webcamsDbFile, outputPath, outputTmpPath='.', logPath='.', hostList=[]):
+    def downloadImages(self, webcamsDbFile, outputPath):
         """Downloads a list of images to disk"""
         
         # Reads the XML file and build a webcam database
@@ -233,55 +187,18 @@ class ImageDownloader():
         webcamDb.loadFromXMLFile(webcamsDbFile)
         self.logger.info('Done loading %d webcams.' % len(webcamDb))
         
-        if len(hostList) < 1:
-            self.logger.info('Started downloading %d images...' % len(webcamDb))
-            startTime = time.time()
-            for webcam in webcamDb:
-                # build url (depending on its status)
-                if webcam.status == Webcam.Status.DOWNLOAD or webcam.status == Webcam.Status.ALREADY_DL:
-                    webcamUrl = webcam.imageUrl
-                else:
-                    webcamUrl = webcam.origUrl
-                    
-                self.downloadWebcamImage(webcam, webcamUrl, os.path.join(outputPath, '%d' % webcam.id))
+        self.logger.info('Started downloading %d images...' % len(webcamDb))
+        startTime = time.time()
+        for webcam in webcamDb:
+            # build url (depending on its status)
+            if webcam.status == Webcam.Status.DOWNLOAD or webcam.status == Webcam.Status.ALREADY_DL:
+                webcamUrl = webcam.imageUrl
+            else:
+                webcamUrl = webcam.origUrl
                 
-            self.logger.info('Done downloading all %d images in %d seconds' % (len(webcamDb), time.time()-startTime))
-                        
-        else:
-            # Check which host is available
-            onlineHosts = HostConnection.findOnlineHosts(hostList)
+            self.downloadWebcamImage(webcam, webcamUrl, os.path.join(outputPath, webcam.name))
             
-            # Alert if a host is offline
-            if len(onlineHosts) != len(hostList):
-                offlineHosts = [item for item in hostList if not item in onlineHosts]
-                
-                self.logger.warning('Found %d offline hosts... sending notification email' % len(offlineHosts))
-                self.sendEmail('I found %d offline hosts! \n\n Here they are: \n\n %s' % (len(offlineHosts), offlineHosts), \
-                               'Some hosts are offline')
-            
-            # Split the image list across hosts
-            random.shuffle(webcamDb)
-            nbWebcamsPerHost = int(math.ceil(float(len(webcamDb))/float(len(onlineHosts))))
-            
-            self.logger.info('Each of the %d hosts will download %d images' % (len(onlineHosts), nbWebcamsPerHost))
-            
-            nbWebcamsDownloaded = 0
-            for i in range(0, len(onlineHosts)):
-                # Select which webcams to download
-                subWebcamDb = webcamDb[nbWebcamsDownloaded:(nbWebcamsPerHost+nbWebcamsDownloaded)]
-                nbWebcamsDownloaded = nbWebcamsDownloaded + len(subWebcamDb)
-                
-                # Create temporary XML file for that host (need absolute path)
-                tmpXMLFile = os.path.join(outputTmpPath, onlineHosts[i]+'.xml')
-                subWebcamDb.saveToXMLFile(tmpXMLFile)
-                
-                cmd = '%s %s %s %s %s >> /dev/null' % (self.pythonPath, self.pythonExecutable, tmpXMLFile, outputPath, os.path.join(logPath, '%d' % i))
-                
-                self.hostConnection.startCmdOnHost(onlineHosts[i], cmd)
-                
-                # Stop if we've processed all webcams
-                if nbWebcamsDownloaded == len(webcamDb):
-                    break
+        self.logger.info('Done downloading all %d images in %d seconds' % (len(webcamDb), time.time()-startTime))
                 
             
     def downloadWebcamImage(self, webcam, inputUrl, outputPath):

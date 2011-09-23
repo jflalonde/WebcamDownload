@@ -1,17 +1,65 @@
-1. Download images from the original database:
+--- README ---
 
-/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_x86_64/bin/python DownloadDaytimeImages.py /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/rawWebcamsDb.xml /nfs/hn01/jlalonde/data/webcamsDownloadDb/images/ /nfs/hn01/jlalonde/data/webcamsDownloadDb/logs/ /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/machineList.xml
+This software package automatically downloads images from online webcams. It was used to gather the 
+Webcam Clip Art Dataset available at:
+
+http://graphics.cs.cmu.edu/projects/webcamdataset 
+
+The code has the following features, see below for additional details:
+- multi-threaded (one main thread, one or many downloading threads);
+- computes the sun position based on gps and time to download only daytime images; 
+- checks for image corruption (this happens often with webcams);
+- emails periodically to let you know that it's still running;
+- emails if there is a problem;
+- avoids downloading duplicates;
+- tags imags with current date and time (in UTC coordinates);
+- supports different sampling intervals and total time (can be set to infinite, or continuous download);
+- logs output to file with different levels of verbosity (adjustable);
+- uses an xml file for listing the webcams to download, so the list can be changed on the fly without having to restart;
+
+Most of these options can be turned on/off manually.
 
 
-2. Download images from the filtered database, using 50 nodes on WARP
+-- Command line example --
 
-/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_x86_64/bin/python DownloadImagesWarp.py /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/webcamsToDownload.xml /nfs/hn01/jlalonde/data/webcamsDownloadDb/imagesDb/ 50 /nfs/hn01/jlalonde/data/webcamsDownloadDb/logs/
+python DownloadImagesThreads.py /path/to/webcams.xml /path/to/images/ 10 /path/to/logdirectory/
 
 
-3. Download images from the filtered database, using 10 threads
+-- Checking for image corruption --
 
-/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_x86_64/bin/python DownloadImagesThreads.py /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/webcamsToDownload.xml /nfs/baikal/jflalonde/webcamsDownloadDb/imagesDb/ 10 /nfs/hn01/jlalonde/data/webcamsDownloadDb/logs/threadRoot.log
+Checking for image corruption (filterJpg=True) requires the third-party C software package 'Jpeginfo' by Timo Kokkonen.
+Version 1.6.0 is included herein for convenience. Make sure the path to the compiled executable is given to 
+DownloadImagesThread.py.
 
-Old version:
 
-/nfs/hn01/jlalonde/code/c++/trunk/3rd_party/python_x86_64/bin/python DownloadImagesThreads.py /nfs/hn01/jlalonde/data/webcamsDownloadDb/databases/webcamsToDownload.xml /nfs/hn01/jlalonde/data/webcamsDownloadDb/imagesDb/ 10 /nfs/hn01/jlalonde/data/webcamsDownloadDb/logs/threadRoot.log
+-- Sun position --
+
+Computing the sun position (filterSunAltitude=True) requires the third-party python package 'pysolar' by Brandon Stafford.
+I have included a version herein for convenience. Make sure the PYTHONPATH points to that package as well.
+
+
+-- Duplicates --
+
+We can avoid downloading duplicates by setting filterExistingFile=True.
+
+
+--- Emails ---
+
+The program supports email notifications when emailNotification=True. It should send email:
+
+- at a certain frequency (e.g. every day), to keep you informed that it is still running (so you don't have to check);
+	- set emailRunningNotificationInterval to the interval at which you want to receive emails
+- if a thread is still trying to download after the time interval has elapsed;
+- if launching all the threads take longer than the time interval.
+
+
+-- Logging --
+
+The caller thread and each downloading threads have their own log files, which get created automatically from
+the caller log file passed in as input. You can change the verbosity of the loggers via the 'setLevel' function. 
+By default, the caller thread has level INFO, and each downloading thread DEBUG.  
+
+
+-- Python version --
+
+This has been tested on Mac OSX 10.6 with python 2.6.2.

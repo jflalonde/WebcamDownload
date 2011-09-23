@@ -1,7 +1,7 @@
 '''
 Created on May 18, 2009
 
-@author: jflalonde
+@author: Jean-Francois Lalonde
 '''
 
 import xml.dom.minidom
@@ -33,7 +33,7 @@ class Status(object):
 	NEW = 'NEW'
 	READY = 'READY'
 	DOWNLOAD = 'DOWNLOAD'
-        ALREADY_DL = 'ALREADY-DL'
+	ALREADY_DL = 'ALREADY-DL'
 	BAD = 'BAD'
 	NO_SKY = 'NO-SKY'
 	CANNOT_FIND = 'CANNOT-FIND'
@@ -49,7 +49,7 @@ class Webcam(object):
 		self.folder = '.'
 		
 		# Sequence
-		self.id = 0
+		self.name = ''
 		
 		# GPS coordinates
 		self.latitude = 0
@@ -76,7 +76,7 @@ class Webcam(object):
 		self.folder = xmlElement.getElementsByTagName('file')[0].getAttribute('folder')
 		
 		# Sequence
-		self.id = int(xmlElement.getElementsByTagName('sequence')[0].getAttribute('name'))
+		self.name = xmlElement.getElementsByTagName('sequence')[0].getAttribute('name')
 		
 		# URL
 		self.origUrl = xmlElement.getElementsByTagName('url')[0].getAttribute('orig')
@@ -92,41 +92,13 @@ class Webcam(object):
 		self.country = xmlElement.getElementsByTagName('location')[0].getAttribute('country')
 		self.city = xmlElement.getElementsByTagName('location')[0].getAttribute('city')
 		self.title = xmlElement.getElementsByTagName('location')[0].getAttribute('title')
-
 						
 	def loadFromXMLFile(self, xmlFilename):
 		""" Loads webcam information from XML file """
 		xmlDocument = xml.dom.minidom.parse(xmlFilename)
 		self.loadFromXMLElement(xmlDocument)
 		xmlDocument.unlink()
-		
-	def loadFromOnlineDbXMLString(self, xmlString):
-		""" Loads webcam information from XML string """
-		xmlDocument = xml.dom.minidom.parseString(xmlString.encode("UTF-8"))
-		
-		# webcam id
-		self.id = int(xmlDocument.getElementsByTagName('webcamid')[0].firstChild.data)
-		
-		# GPS coordinates
-		self.latitude = float(xmlDocument.getElementsByTagName('latitude')[0].firstChild.data)
-		self.longitude = float(xmlDocument.getElementsByTagName('longitude')[0].firstChild.data)
-		
-		# Location information
-		self.continent = xmlDocument.getElementsByTagName('continent')[0].firstChild.data
-		self.country = xmlDocument.getElementsByTagName('country')[0].firstChild.data
-		self.city = xmlDocument.getElementsByTagName('city')[0].firstChild.data
-		self.title = xmlDocument.getElementsByTagName('title')[0].firstChild.data
-		
-		# Create file/folder name
-		self.filename = '%d.xml' % self.id
-		self.folder = '.'
-		
-		# Set status
-		self.status = 'NEW'
-		
-		# close the parser
-		xmlDocument.unlink()
-		
+				
 	def convertToXmlElement(self):
 		""" Converts the webcam information to an XML element """
 		doc = xml.dom.minidom.Document()
@@ -145,8 +117,8 @@ class Webcam(object):
 		
 		# Sequence
 		seqEl = doc.createElement(u'sequence')
-		seqEl.setAttribute(u'name', '%d' % self.id)
-		seqEl.setAttribute(u'origName', '%d' % self.id)
+		seqEl.setAttribute(u'name', self.name)
+		seqEl.setAttribute(u'origName', self.name)
 		webcamEl.appendChild(seqEl)
 		
 		# URL
