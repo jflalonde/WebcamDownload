@@ -1,0 +1,23 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+configure:553: checking host system type
+configure:582: checking for gcc
+configure:659: checking whether the C compiler (gcc  ) works
+configure:673: gcc -o conftest    conftest.c  1>&5
+configure:693: checking whether the C compiler (gcc  ) is a cross-compiler
+configure:698: checking whether we are using GNU C
+configure:722: checking whether gcc accepts -g
+configure:760: checking for a BSD compatible install
+configure:810: checking whether make sets ${MAKE}
+configure:857: checking for jpeg_read_header in -ljpeg
+configure:911: checking how to run the C preprocessor
+configure:972: checking for ANSI C header files
+configure:1079: checking for unistd.h
+configure:1079: checking for getopt.h
+configure:1079: checking for string.h
+configure:1119: checking for jpeglib.h
+configure:1162: checking size of long
+configure:1201: checking size of int
+configure:1245: checking for getopt_long
+configure:1303: checking for broken jmorecfg.h (METHODDEF)
