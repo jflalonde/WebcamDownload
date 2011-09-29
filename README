@@ -1,7 +1,8 @@
 --- README ---
 
-This software package automatically downloads images from online webcams. It was used to gather the 
-Webcam Clip Art Dataset available at:
+This python software package automatically downloads images from
+online webcams. It was used to gather the Webcam Clip Art Dataset
+available at:
 
 http://graphics.cs.cmu.edu/projects/webcamdataset 
 
