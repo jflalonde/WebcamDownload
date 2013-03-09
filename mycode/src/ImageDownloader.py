@@ -6,7 +6,6 @@ Created on May 18, 2009
 
 import solar
 import filecmp
-import os
 import os.path
 import glob
 import datetime
@@ -18,9 +17,7 @@ import smtplib
 import email
 import math
 import time
-import subprocess
 import logging
-import xml.dom.minidom
 
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -259,8 +256,6 @@ class ImageDownloader():
             
     def downloadImage(self, inputUrl, outputFilename):
         """Downloads an image from the web and saves it to the disk"""
-        
-        extension = inputUrl[inputUrl.rindex('.'):]
         
         if inputUrl.find('faststream') > -1 or inputUrl.find('mjpg') > -1 or inputUrl.lower().find('motionjpeg') > -1:
             raise RuntimeError('Don\'t know what to do with mjpegs')

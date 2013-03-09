@@ -5,8 +5,6 @@ Created on May 18, 2009
 '''
 
 import xml.dom.minidom
-import os
-import tempfile
 import os.path
 import shutil
 
@@ -152,7 +150,7 @@ class Webcam(object):
 		doc.appendChild(webcamEl)
 		
 		saveXmlFile(doc, xmlFilename)
-			 
+			
 class WebcamDatabase:
 	""" Represents an array of webcam sequences, which can itself be read/written to XML """
 	
