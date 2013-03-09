@@ -5,14 +5,9 @@ Created on Nov. 10th, 2009
 '''
 
 import ImageDownloader
-import Webcam
-import os
 import os.path
-import glob
-import xml.dom.minidom
 import sys
 import logging
-import socket
 
 def usage():
     print 'Usage: \
