@@ -39,18 +39,27 @@ if __name__ == '__main__':
                 htmlData = urllib.request.urlopen(rainUrl, timeout=timeoutTime).read()
 
                 soup = BeautifulSoup(htmlData, 'html.parser')
+                # Find the rainfall rate
                 rainRateStr = soup.find(id="rain_rate").get_text()
-                rainRate = float(rainRateStr.split()[0])
+                # rainRate = float(rainRateStr.split()[0])
+
+                # Find the wind speed and direction
+                windSpeedStr = soup.find(id="vents_avg").get_text()
 
                 # Create filename
-                imageFilename = '{}{}{}_{}{}{}-{:.5}.jpg'.format(
-                    curDate.year, curDate.month, curDate.day, curDate.hour, curDate.minute, curDate.second, rainRate)
+                imageFilename = '{:%Y%m%d_%H%M%S}.jpg'.format(curDate)
                 outputFile = os.path.join(outputPath, imageFilename)
 
                 # Save to disk
                 fw = open(outputFile, 'wb')
                 fw.write(webcamImgData)
                 fw.close()
+
+                # Append to the .csv file
+                csvPath = os.path.join(outputPath, "0-images.csv")
+                with open(csvPath, 'a') as fd:
+                    print("{}, {}, {}".format(imageFilename, rainRateStr, windSpeedStr), file=fd)
+                fd.close()
 
                 # Yay, everything worked!
                 print("Successfully saved image %s" % imageFilename)
@@ -60,7 +69,10 @@ if __name__ == '__main__':
                 time.sleep(5 * 60)
 
         except urllib.request.URLError as error:
-            print("Encountered an URL error: %s" % error)
+            print("Encountered an URL error: {}".format(error))
+
+        except ValueError:
+            print("Encountered an error: {}".format(error))
 
         # except:
         #     print("Encountered another error... oops!")
